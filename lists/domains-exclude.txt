@@ -1,0 +1,14 @@
+ru
+su
+xn--p1ai
+vk.com
+yandex.ru
+yandex.com
+ya.ru
+gosuslugi.ru
+sberbank.ru
+ozon.ru
+wildberries.ru
+avito.ru
+localhost
+127.0.0.1

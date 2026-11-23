@@ -1,0 +1,6 @@
+_cache/
+bin/
+logs/
+lua/zapret-*.lua
+files/fake/
+*.log
