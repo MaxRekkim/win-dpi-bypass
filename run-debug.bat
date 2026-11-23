@@ -41,7 +41,7 @@ echo [INFO] Starting winws2 with debug log -> logs\winws2.log
    --lua-desync=fake:blob=fake_tls_google:tcp_seq=-10000:ip_id=zero:repeats=8:strategy=1 ^
    --lua-desync=multidisorder:pos=1,midsld:tcp_seq=-10000:ip_id=zero:strategy=1 ^
    --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:strategy=2 --new ^
- --filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=lists/domains-bypass.txt --hostlist-exclude=lists/domains-exclude.txt ^
+ --filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=lists/domains-bypass.txt --hostlist-auto=lists/domains-auto.txt --hostlist-auto-fail-threshold=2 --hostlist-auto-retrans-threshold=2 --hostlist-exclude=lists/domains-exclude.txt ^
    --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=1:retrans=1 ^
    --in-range=x ^
    --payload=tls_client_hello ^

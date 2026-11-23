@@ -42,6 +42,8 @@ chmod +x "$INSTALL_DIR/bin/nfqws2"
 cp -f "$REPO_DIR"/lua/*.lua "$INSTALL_DIR/lua/"
 cp -f "$REPO_DIR"/files/fake/* "$INSTALL_DIR/files/fake/"
 cp -f "$REPO_DIR"/lists/*.txt "$INSTALL_DIR/lists/"
+touch "$INSTALL_DIR/lists/domains-auto.txt"
+chmod 666 "$INSTALL_DIR/lists/domains-auto.txt"
 
 cat > "$INIT_SCRIPT" << EOF
 #!/bin/sh
@@ -107,7 +109,7 @@ start() {
         --lua-desync=fake:blob=fake_tls_google:tcp_seq=-10000:ip_id=zero:repeats=8:strategy=1 \\
         --lua-desync=multidisorder:pos=1,midsld:tcp_seq=-10000:ip_id=zero:strategy=1 \\
         --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:strategy=2 --new \\
-      --filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\$LISTS/domains-bypass.txt --hostlist-exclude=\$LISTS/domains-exclude.txt \\
+      --filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\$LISTS/domains-bypass.txt --hostlist-auto=\$LISTS/domains-auto.txt --hostlist-auto-fail-threshold=2 --hostlist-auto-retrans-threshold=2 --hostlist-exclude=\$LISTS/domains-exclude.txt \\
         --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=1:retrans=1 \\
         --in-range=x \\
         --payload=tls_client_hello \\

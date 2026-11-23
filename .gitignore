@@ -1,3 +1,4 @@
 _cache/
 logs/
 *.log
+lists/domains-auto.txt

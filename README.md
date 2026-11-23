@@ -56,5 +56,5 @@
 * [`service-install.bat`](./service-install.bat) / [`service-remove.bat`](./service-remove.bat) — служба автозапуска Windows
 * [`keenetic/install.sh`](./keenetic/install.sh) / [`keenetic/uninstall.sh`](./keenetic/uninstall.sh) — установка и удаление на Keenetic
 * [`lua/custom-dpi.lua`](./lua/custom-dpi.lua) — свои Lua-хелперы
-* [`lists/domains-bypass.txt`](./lists/domains-bypass.txt) / [`lists/domains-exclude.txt`](./lists/domains-exclude.txt) — списки доменов и исключений
+* [`lists/domains-google.txt`](./lists/domains-google.txt) / [`lists/domains-bypass.txt`](./lists/domains-bypass.txt) / [`lists/domains-exclude.txt`](./lists/domains-exclude.txt) — списки доменов и исключений (`domains-auto.txt` заполняется автоматически при обнаружении новых DPI-блокировок)
 * [`scripts/test-strategies.ps1`](./scripts/test-strategies.ps1) — проверка HTTP-кода, размера и скорости скачивания
