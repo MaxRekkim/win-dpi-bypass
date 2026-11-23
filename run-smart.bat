@@ -35,7 +35,7 @@ echo [INFO] Starting winws2 with circular per-host strategy rotation...
  --filter-udp=443 --hostlist=lists/domains-bypass.txt --hostlist-exclude=lists/domains-exclude.txt ^
    --out-range=-n4 --payload=quic_initial --lua-desync=fake:blob=fake_quic_google:repeats=6 --new ^
  --filter-udp=19294-19344,50000-50100 --filter-l7=discord,stun ^
-   --out-range=-n4 --lua-desync=fake:blob=fake_discord_udp:ip_ttl=7:repeats=6 --new ^
+   --out-range=-n8 --lua-desync=fake:blob=fake_discord_udp:ip_ttl=7:repeats=6 --new ^
  --filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=lists/domains-bypass.txt --hostlist-exclude=lists/domains-exclude.txt ^
    --out-range=-s34228 --in-range=-s5556 --lua-desync=circular ^
    --in-range=x ^

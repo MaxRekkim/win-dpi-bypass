@@ -44,6 +44,8 @@
 ## Файлы
 
 * [`run-smart.bat`](./run-smart.bat) — запуск `winws2.exe` с `circular`-ротацией
+* [`run-debug.bat`](./run-debug.bat) — то же самое с записью отладочного лога в `logs/winws2.log`
+* [`service-install.bat`](./service-install.bat) / [`service-remove.bat`](./service-remove.bat) — установка и удаление службы автозапуска Windows
 * [`lua/custom-dpi.lua`](./lua/custom-dpi.lua) — место под свои Lua-хелперы
 * [`lists/domains-bypass.txt`](./lists/domains-bypass.txt) / [`lists/domains-exclude.txt`](./lists/domains-exclude.txt) — списки доменов и исключений
 * [`scripts/setup.ps1`](./scripts/setup.ps1) — загрузка официального `zapret2` с GitHub
