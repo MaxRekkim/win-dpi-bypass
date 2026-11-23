@@ -26,6 +26,7 @@ status.discord.com
 images-ext-1.discordapp.net
 images-ext-2.discordapp.net
 betterdiscord.app
+cloudflare-ech.com
 twitter.com
 x.com
 twimg.com

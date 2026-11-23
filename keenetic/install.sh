@@ -71,6 +71,7 @@ add_firewall() {
     iptables -t mangle -N DPI_BYPASS_IN 2>/dev/null || true
     iptables -t mangle -F DPI_BYPASS_IN 2>/dev/null || true
     iptables -t mangle -A DPI_BYPASS_IN -p tcp -m multiport --sports 80,443,2053,2083,2087,2096,8443 -m connbytes --connbytes 1:8 --connbytes-mode packets --connbytes-dir reply -j NFQUEUE --queue-num \$QNUM --queue-bypass
+    iptables -t mangle -A DPI_BYPASS_IN -p udp -m multiport --sports 443,19294:19344 -m connbytes --connbytes 1:4 --connbytes-mode packets --connbytes-dir reply -j NFQUEUE --queue-num \$QNUM --queue-bypass
 
     iptables -t mangle -C POSTROUTING -o \$WAN_IF -j DPI_BYPASS 2>/dev/null || iptables -t mangle -A POSTROUTING -o \$WAN_IF -j DPI_BYPASS
     iptables -t mangle -C PREROUTING -i \$WAN_IF -j DPI_BYPASS_IN 2>/dev/null || iptables -t mangle -A PREROUTING -i \$WAN_IF -j DPI_BYPASS_IN
@@ -99,32 +100,43 @@ start() {
       --blob=fake_quic_google:@\$FAKE/quic_initial_www_google_com.bin \\
       --blob=fake_discord_udp:@\$FAKE/discord-ip-discovery-with-port.bin \\
       --filter-udp=443 --hostlist=\$LISTS/domains-google.txt --hostlist=\$LISTS/domains-bypass.txt --hostlist-exclude=\$LISTS/domains-exclude.txt \\
-        --out-range=-n4 --payload=quic_initial --lua-desync=fake:blob=fake_quic_google:repeats=6 --new \\
-      --filter-udp=19294-19344,50000-50100 --filter-l7=discord,stun \\
-        --out-range=-n8 --lua-desync=fake:blob=fake_discord_udp:ip_ttl=7:repeats=6 --new \\
+        --out-range=-n8 --in-range=-n4 --lua-desync=circular:fails=2:udp_out=4:udp_in=1 \\
+        --in-range=x --payload=quic_initial \\
+        --lua-desync=fake:blob=fake_quic_google:ip_autottl=-2,3-20:ip_ttl=5:repeats=6:strategy=1 \\
+        --lua-desync=send:ipfrag=ipfrag2:ipfrag_pos_udp=8:ipfrag_disorder:strategy=2 \\
+        --lua-desync=drop:strategy=2 --new \\
+      --filter-udp=50000-50100 --filter-l7=discord,stun \\
+        --out-range=-n8 --lua-desync=fake:blob=fake_discord_udp:ip_autottl=-2,3-20:ip_ttl=6:repeats=6 --new \\
+      --filter-udp=19294-19344 \\
+        --out-range=-n12 --in-range=-n4 --lua-desync=circular:fails=2:udp_out=4:udp_in=1 \\
+        --in-range=x \\
+        --lua-desync=fake:blob=fake_quic_google:ip_autottl=-2,3-20:ip_ttl=6:repeats=6:strategy=1 \\
+        --lua-desync=send:ipfrag=ipfrag2:ipfrag_pos_udp=8:ipfrag_disorder:strategy=2 \\
+        --lua-desync=drop:strategy=2 --new \\
       --filter-tcp=443 --hostlist=\$LISTS/domains-google.txt \\
-        --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=1:retrans=1 \\
+        --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=2:retrans=2:reset:nld=2:time=60 \\
         --in-range=x \\
         --payload=tls_client_hello \\
-        --lua-desync=fake:blob=fake_tls_google:tcp_seq=-10000:ip_id=zero:repeats=8:strategy=1 \\
-        --lua-desync=multidisorder:pos=1,midsld:tcp_seq=-10000:ip_id=zero:strategy=1 \\
-        --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:strategy=2 --new \\
+        --lua-desync=fake:blob=fake_tls_google:tls_mod=rnd,dupsid:tcp_seq=-10000:ip_id=zero:repeats=8:strategy=1 \\
+        --lua-desync=multidisorder:pos=1,midsld:ip_id=zero:strategy=1 \\
+        --lua-desync=fakeddisorder:pos=midsld:tcp_seq=-10000:ip_id=zero:strategy=2 \\
+        --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:strategy=3 --new \\
       --filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\$LISTS/domains-bypass.txt --hostlist-auto=\$LISTS/domains-auto.txt --hostlist-auto-fail-threshold=2 --hostlist-auto-retrans-threshold=2 --hostlist-exclude=\$LISTS/domains-exclude.txt \\
-        --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=1:retrans=1 \\
+        --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=2:retrans=2:reset:nld=2:time=60 \\
         --in-range=x \\
         --payload=tls_client_hello \\
-        --lua-desync=fake:blob=fake_tls_google:tcp_ts=-600000:repeats=4:strategy=1 \\
-        --lua-desync=multisplit:pos=2:seqovl=652:tcp_ts=-600000:strategy=1 \\
-        --lua-desync=fake:blob=fake_tls_google:tcp_seq=-10000:repeats=8:strategy=2 \\
-        --lua-desync=multidisorder:pos=1,midsld:tcp_seq=-10000:strategy=2 \\
-        --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:strategy=3 \\
-        --lua-desync=fake:blob=fake_tls_sber:tcp_seq=-10000:repeats=6:strategy=4 \\
-        --lua-desync=multisplit:pos=1,midsld:tcp_seq=-10000:strategy=4 \\
+        --lua-desync=tls_client_hello_clone:blob=fake_cloned:sni_del:sni_first=www.google.com:fallback=fake_tls_google:strategy=1 \\
+        --lua-desync=fake:blob=fake_cloned:ip_autottl=-2,3-20:ip_ttl=5:repeats=4:strategy=1 \\
+        --lua-desync=multisplit:pos=1,midsld:strategy=1 \\
+        --lua-desync=fakeddisorder:pos=2:seqovl=1:badsum:tcp_md5:strategy=2 \\
+        --lua-desync=fake:blob=fake_tls_google:tls_mod=rnd,rndsni,dupsid:fool=custom_fool_randseq:repeats=6:strategy=3 \\
+        --lua-desync=multisplit:pos=2:seqovl=652:strategy=3 \\
+        --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:strategy=4 \\
         --payload=http_req \\
         --lua-desync=multisplit:pos=method+2:strategy=1 \\
-        --lua-desync=multisplit:pos=host:strategy=2 \\
-        --lua-desync=hostfakesplit:host=www.google.com:strategy=3 \\
-        --lua-desync=http_methodeol:strategy=4
+        --lua-desync=fakeddisorder:pos=host:badsum:strategy=2 \\
+        --lua-desync=multisplit:pos=host:strategy=3 \\
+        --lua-desync=hostfakesplit:host=www.google.com:strategy=4
     add_firewall
 }
 
