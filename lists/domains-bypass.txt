@@ -25,6 +25,7 @@ updates.discord.com
 status.discord.com
 images-ext-1.discordapp.net
 images-ext-2.discordapp.net
+betterdiscord.app
 twitter.com
 x.com
 twimg.com
