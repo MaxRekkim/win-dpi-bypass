@@ -2,76 +2,60 @@
 
 # <a href="https://github.com/MaxRekkim/win-dpi-bypass">MaxRekkim/win-dpi-bypass</a>
 
-Сборка и набор стратегий обхода DPI для Windows на базе [**bol-van/zapret2**](https://github.com/bol-van/zapret2) (`winws2` + Lua).  
-Оригинальный разработчик ядра: [**bol-van**](https://github.com/bol-van/zapret2)
+Сборка под Windows на базе [**bol-van/zapret2**](https://github.com/bol-van/zapret2) (`winws2` + Lua).
 
 </div>
 
 > [!IMPORTANT]
-> Все исполняемые и системные файлы (`winws2.exe`, `WinDivert.dll`, `WinDivert64.sys`, базовые Lua-модули и фейки) загружаются скриптом [`scripts/setup.ps1`](./scripts/setup.ps1) напрямую из официального релиза [**bol-van/zapret2**](https://github.com/bol-van/zapret2/releases) (`v1.0.7`). Сторонние перепакованные бинарники в репозитории не хранятся.
+> Все бинарники (`winws2.exe`, `WinDivert.dll`, `WinDivert64.sys`), базовые Lua-скрипты и фейки качаются скриптом [`scripts/setup.ps1`](./scripts/setup.ps1) напрямую из официального релиза [**bol-van/zapret2**](https://github.com/bol-van/zapret2/releases) (`v1.0.7`). В самом репо лежит только обвязка, списки и конфиг запуска.
 
 > [!WARNING]
-> ### АНТИВИРУСЫ
-> `WinDivert` может вызывать реакцию антивируса. Это системный драйвер перехвата и фильтрации трафика, необходимый для работы `winws2` — сам по себе он не является вирусом, но антивирусы часто относят его к категории PUA/RiskTool (`WinDivert` / `Not-a-virus:RiskTool.Multi.WinDivert`).
+> ### Антивирусы
+> `WinDivert64.sys` почти наверняка вызовет срабатывание антивируса (`WinDivert` / `RiskTool.Multi.WinDivert`). Это драйвер перехвата пакетов, без которого `winws2` на Windows не работает.
 >
-> Добавьте папку с проектом в исключения антивируса, иначе `WinDivert64.sys` или `winws2.exe` будут удалены в карантин.
+> Добавьте папку с проектом в исключения антивируса, иначе драйвер сразу улетит в карантин.
 
----
+## Зачем это
 
-## Зачем это нужно
+В обычном `zapret1` (`winws.exe`) все стратегии зашиты в C-код — если на каком-то провайдере выбранный `.bat` начинает отваливаться, приходится вручную перебирать пресеты.
 
-Автономное средство противодействия DPI для Windows без сторонних серверов и VPN.  
-В отличие от классического `zapret1` (`winws.exe`), где логика стратегий жёстко зашита в C-код, движок **`zapret2` (`winws2.exe`)** переносит сценарии модификации пакетов в **Lua**.
+Здесь используется `zapret2` (`winws2.exe` + Lua) и встроенный оркестратор `circular`. Если какая-то стратегия на конкретном домене не проходит или соединение рвётся, `winws2` сам переключает этот домен на следующий вариант по кругу, не трогая остальные сайты и не перезапуская процесс:
 
-В этой сборке используется оркестратор **`circular`** из `zapret-auto.lua`: для каждого домена из списка `winws2` отслеживает успешность соединения и при сбое/блокировке автоматически переключает проблемный домен на следующую стратегию по кругу без перезапуска процесса:
+1. `fake` + `multisplit` (`seqovl=652`, `tcp_ts=-600000`) — основной вариант под Cloudflare / Discord / X
+2. `fake` + `multidisorder` (`pos=1,midsld`, `tcp_seq=-10000`) — под YouTube / Google
+3. `hostfakesplit` (`www.google.com`, `tcp_ts=-600000`)
+4. `fake` (`sberbank_ru`) + `multisplit` (`pos=1,midsld`, `tcp_seq=-10000`)
 
-1. **Стратегия 1:** `fake` + `multisplit` (`seqovl=652`, `tcp_ts=-600000`) — для Cloudflare / Discord / X.
-2. **Стратегия 2:** `fake` + `multidisorder` (`pos=1,midsld`, `tcp_seq=-10000`) — для YouTube / Google.
-3. **Стратегия 3:** `hostfakesplit` (`host=www.google.com`, `tcp_ts=-600000`).
-4. **Стратегия 4:** `fake` (`sberbank_ru`) + `multisplit` (`pos=1,midsld`, `tcp_seq=-10000`).
-
-Отдельные профили настроены для **QUIC (UDP 443)** и голосовых серверов **Discord (UDP `19294-19344, 50000-50100`, `ip_ttl=7`)**.
+Для QUIC (`UDP 443`) и голоса Discord (`UDP 19294-19344, 50000-50100`, `ip_ttl=7`) стоят отдельные правила.
 
 > [!NOTE]
-> `winws2` обходит только **DPI-фильтрацию** (HTTP/TLS/QUIC/UDP). Если провайдер блокирует ресурс жёстко по IP на уровне сброса TCP `SYN` (например, подсети Telegram на некоторых провайдерах), никакие локальные стратегии `zapret2` это не пробьют — в таком случае нужен туннель или локальный прокси.
+> `zapret2` обходит только DPI. Если провайдер рубит ресурс жёстко по IP ещё на `TCP SYN` (как часто бывает с подсетями Telegram или Meta), локальный обход не поможет — тут нужен туннель или прокси.
 
----
+## Использование
 
-## ⚙️ Использование
-
-1. **Включите Безопасный DNS (Secure DNS / DoH):**
-   * В браузере (Chrome / Edge / Firefox) выберите провайдера DNS, отличного от «Поставщик по умолчанию» (например, `https://dns.google/dns-query`).
-   * Либо включите DoH в настройках Windows 11.
-2. **Распакуйте или склонируйте репозиторий в путь без кириллицы и спецсимволов** (например, `C:\win-dpi-bypass`).
-3. **Запустите [`run-smart.bat`](./run-smart.bat) от имени администратора.**
-   * При первом запуске скрипт сам скачает официальный архив `zapret2 v1.0.7` и разложит нужные файлы в `bin/`, `lua/` и `files/fake/`.
-4. **Проверьте работу и реальную скорость:**
+1. Включите Secure DNS (DoH) в браузере или в Windows 11 (например `https://dns.google/dns-query`, не «по умолчанию от провайдера»).
+2. Склонируйте или распакуйте папку в путь без кириллицы (например `C:\win-dpi-bypass`).
+3. Запустите [`run-smart.bat`](./run-smart.bat) **от имени администратора** — при первом запуске он сам скачает `zapret2 v1.0.7` в `bin/`.
+4. Проверить, что сайты реально грузятся, а не просто отдают `200` и виснут на первых килобайтах:
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\test-strategies.ps1
    ```
 
----
+## Файлы
 
-## ℹ️ Описание файлов
+* [`run-smart.bat`](./run-smart.bat) — запуск `winws2.exe` с `circular`-ротацией
+* [`lua/custom-dpi.lua`](./lua/custom-dpi.lua) — место под свои Lua-хелперы
+* [`lists/domains-bypass.txt`](./lists/domains-bypass.txt) / [`lists/domains-exclude.txt`](./lists/domains-exclude.txt) — списки доменов и исключений
+* [`scripts/setup.ps1`](./scripts/setup.ps1) — загрузка официального `zapret2` с GitHub
+* [`scripts/test-strategies.ps1`](./scripts/test-strategies.ps1) — проверка HTTP-кода, размера и скорости скачивания
 
-* [**`run-smart.bat`**](./run-smart.bat) — основной запуск `winws2.exe` с `circular`-ротацией стратегий и профилями под TCP/QUIC/Discord Voice.
-* [**`lua/custom-dpi.lua`**](./lua/custom-dpi.lua) — пользовательский Lua-модуль для доработки и отладки собственных сценариев поверх `zapret-lib.lua` / `zapret-antidpi.lua`.
-* [**`lists/domains-bypass.txt`**](./lists/domains-bypass.txt) — список доменов, для которых применяется обход (`YouTube`, `Discord`, `X` и др.).
-* [**`lists/domains-exclude.txt`**](./lists/domains-exclude.txt) — домены-исключения (локальные и российские сервисы).
-* [**`scripts/setup.ps1`**](./scripts/setup.ps1) — загрузка и распаковка официальных бинарников `zapret2` с GitHub Releases.
-* [**`scripts/test-strategies.ps1`**](./scripts/test-strategies.ps1) — проверка `YouTube`, `Discord App` и `X` не только по HTTP-коду `200`, но и по реальному объёму и скорости скачивания.
+## Если не работает
 
----
-
-## ☑️ Частые проблемы
-
-* **Ничего не открывается / блокировка остаётся:**
-  * Убедитесь, что `run-smart.bat` запущен от имени администратора и антивирус не удалил `bin\WinDivert64.sys`.
-  * Проверьте, что не запущен второй экземпляр `winws.exe` / `winws2.exe` или старая служба `zapret` (`sc query zapret`).
-  * Сбросьте сетевой стек в командной строке от администратора:
-    ```cmd
-    netsh winsock reset
-    netsh int ip reset all
-    netsh winhttp reset proxy
-    ipconfig /flushdns
-    ```
+* Убедитесь, что `run-smart.bat` запущен от администратора, `bin\WinDivert64.sys` на месте и не висит старая служба `zapret` (`sc query zapret`).
+* Если сетевой стек залип, в `cmd` от администратора:
+  ```cmd
+  netsh winsock reset
+  netsh int ip reset all
+  netsh winhttp reset proxy
+  ipconfig /flushdns
+  ```
