@@ -28,12 +28,19 @@ echo [INFO] Starting winws2 with circular per-host strategy rotation...
  --blob=fake_tls_sber:@files/fake/tls_clienthello_sberbank_ru.bin ^
  --blob=fake_quic_google:@files/fake/quic_initial_www_google_com.bin ^
  --blob=fake_discord_udp:@files/fake/discord-ip-discovery-with-port.bin ^
- --filter-udp=443 --hostlist=lists/domains-bypass.txt --hostlist-exclude=lists/domains-exclude.txt ^
+ --filter-udp=443 --hostlist=lists/domains-google.txt --hostlist=lists/domains-bypass.txt --hostlist-exclude=lists/domains-exclude.txt ^
    --out-range=-n4 --payload=quic_initial --lua-desync=fake:blob=fake_quic_google:repeats=6 --new ^
  --filter-udp=19294-19344,50000-50100 --filter-l7=discord,stun ^
    --out-range=-n8 --lua-desync=fake:blob=fake_discord_udp:ip_ttl=7:repeats=6 --new ^
+ --filter-tcp=443 --hostlist=lists/domains-google.txt ^
+   --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=1:retrans=1 ^
+   --in-range=x ^
+   --payload=tls_client_hello ^
+   --lua-desync=fake:blob=fake_tls_google:tcp_seq=-10000:ip_id=zero:repeats=8:strategy=1 ^
+   --lua-desync=multidisorder:pos=1,midsld:tcp_seq=-10000:ip_id=zero:strategy=1 ^
+   --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:strategy=2 --new ^
  --filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=lists/domains-bypass.txt --hostlist-exclude=lists/domains-exclude.txt ^
-   --out-range=-s34228 --in-range=-s5556 --lua-desync=circular ^
+   --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=1:retrans=1 ^
    --in-range=x ^
    --payload=tls_client_hello ^
    --lua-desync=fake:blob=fake_tls_google:tcp_ts=-600000:repeats=4:strategy=1 ^
