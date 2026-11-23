@@ -2,9 +2,10 @@
 chcp 65001 > nul
 cd /d "%~dp0"
 
-if not exist "bin\winws2.exe" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\setup.ps1"
-    if errorlevel 1 exit /b 1
+if not exist "bin\win\winws2.exe" (
+    echo [ERROR] bin\win\winws2.exe not found!
+    pause
+    exit /b 1
 )
 
 net session >nul 2>&1
@@ -16,7 +17,7 @@ if errorlevel 1 (
 
 if not exist "logs" mkdir logs
 echo [INFO] Starting winws2 with debug log -> logs\winws2.log
-"bin\winws2.exe" ^
+"bin\win\winws2.exe" ^
  --debug=@logs\winws2.log ^
  --wf-tcp-out=80,443,2053,2083,2087,2096,8443 ^
  --wf-tcp-in=80,443,2053,2083,2087,2096,8443 ^

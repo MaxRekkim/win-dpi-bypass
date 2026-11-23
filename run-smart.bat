@@ -2,14 +2,10 @@
 chcp 65001 > nul
 cd /d "%~dp0"
 
-if not exist "bin\winws2.exe" (
-    echo [INFO] Downloading zapret2 binaries...
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\setup.ps1"
-    if errorlevel 1 (
-        echo [ERROR] Setup failed.
-        pause
-        exit /b 1
-    )
+if not exist "bin\win\winws2.exe" (
+    echo [ERROR] bin\win\winws2.exe not found!
+    pause
+    exit /b 1
 )
 
 net session >nul 2>&1
@@ -20,7 +16,7 @@ if errorlevel 1 (
 )
 
 echo [INFO] Starting winws2 with circular per-host strategy rotation...
-"bin\winws2.exe" ^
+"bin\win\winws2.exe" ^
  --wf-tcp-out=80,443,2053,2083,2087,2096,8443 ^
  --wf-tcp-in=80,443,2053,2083,2087,2096,8443 ^
  --wf-udp-out=443,19294-19344,50000-50100 ^

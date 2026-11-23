@@ -2,9 +2,10 @@
 chcp 65001 > nul
 cd /d "%~dp0"
 
-if not exist "bin\winws2.exe" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\setup.ps1"
-    if errorlevel 1 exit /b 1
+if not exist "bin\win\winws2.exe" (
+    echo [ERROR] bin\win\winws2.exe not found!
+    pause
+    exit /b 1
 )
 
 net session >nul 2>&1
@@ -19,7 +20,7 @@ set "ARGS=--wf-tcp-out=80,443,2053,2083,2087,2096,8443 --wf-tcp-in=80,443,2053,2
 
 sc stop "win-dpi-bypass" >nul 2>&1
 sc delete "win-dpi-bypass" >nul 2>&1
-sc create "win-dpi-bypass" binPath= "\"%BASE%bin\winws2.exe\" %ARGS%" DisplayName= "win-dpi-bypass (zapret2)" start= auto
+sc create "win-dpi-bypass" binPath= "\"%BASE%bin\win\winws2.exe\" %ARGS%" DisplayName= "win-dpi-bypass" start= auto
 sc description "win-dpi-bypass" "Local DPI bypass based on zapret2 winws2"
 sc start "win-dpi-bypass"
 pause
