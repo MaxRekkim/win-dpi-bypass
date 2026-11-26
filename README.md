@@ -31,13 +31,17 @@
 
 1. Включите Secure DNS (DoH) в браузере или в Windows 11 (например `https://dns.google/dns-query`, не «по умолчанию от провайдера»).
 2. Скачайте готовый архив со страницы [**Releases**](https://github.com/MaxRekkim/win-dpi-bypass/releases/latest) или склонируйте репозиторий в путь без кириллицы (например `C:\win-dpi-bypass`).
-3. Запустите [`run-smart.bat`](./run-smart.bat) **от имени администратора** (или [`run-debug.bat`](./run-debug.bat) для лога в `logs\winws2.log`).
+3. Запустите [`run-smart.bat`](./run-smart.bat) **от имени администратора** (или [`run-debug.bat`](./run-debug.bat) для полного лога пакетов в `logs\winws2.log`). Автоматически найденные домены и лог срабатываний пишутся в `logs\hostlist-auto.log`.
 4. Поставить в автозапуск службой: [`service-install.bat`](./service-install.bat) (удалить — [`service-remove.bat`](./service-remove.bat)).
-5. Диагностика и проверка реальной скорости:
+5. Диагностика и проверка реальной скорости (результат пишется в `logs\diagnose.log`):
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\diagnose.ps1
    ```
-6. Автообновление до свежего релиза с GitHub (сохраняет `lists\domains-auto.txt` и перезапускает службу, если она работала): запустите [`update.bat`](./update.bat) от имени администратора.
+6. Сбор всех логов в единую папку `logs\latest\` и экспорт zip-архива на Рабочий стол (или на выбранный диск):
+   - Двойной клик по [`collect-logs.bat`](./collect-logs.bat) — сохранит `win-dpi-bypass-logs-YYYYMMDD-HHMMSS.zip` на **Рабочий стол** (учитывает OneDrive).
+   - Сохранить в другую папку / на другой диск: `collect-logs.bat D:\logs` (или создать файл `logs-export.path` с путём, либо задать переменную `DPI_LOGS_DIR`).
+   - В архив попадают `diagnose.log`, `network-and-service.txt`, `hostlist-auto.log`, `winws2.log`, `update.log`, `lists\domains-auto.txt` и хвост RTC-логов Discord (если он установлен).
+7. Автообновление до свежего релиза с GitHub (сохраняет `lists\domains-auto.txt`, `logs-export.path` и перезапускает службу, если она работала): запустите [`update.bat`](./update.bat) от имени администратора.
 
 ## Keenetic (OPKG / Entware)
 
@@ -49,17 +53,24 @@
    chmod +x /opt/tmp/win-dpi-bypass/keenetic/install.sh
    /opt/tmp/win-dpi-bypass/keenetic/install.sh
    ```
-3. Обновление с GitHub Releases: `/opt/tmp/win-dpi-bypass/keenetic/update.sh` (или с `GITHUB_TOKEN`, если репозиторий приватный).
-4. Удаление: `/opt/tmp/win-dpi-bypass/keenetic/uninstall.sh`.
+3. Сбор всех логов роутера (`summary.txt`, `processes.txt`, `iptables`, `domains-auto.txt`, `hostlist-auto.log`, `syslog`) в `.tar.gz`:
+   ```sh
+   /opt/dpi-bypass/collect-logs.sh
+   # или на внешний USB-диск:
+   /opt/dpi-bypass/collect-logs.sh /tmp/mnt/USB/logs
+   ```
+4. Обновление с GitHub Releases: `/opt/tmp/win-dpi-bypass/keenetic/update.sh` (или с `GITHUB_TOKEN`, если репозиторий приватный).
+5. Удаление: `/opt/tmp/win-dpi-bypass/keenetic/uninstall.sh`.
 
 *(Если обход включён на роутере — на ПК и телефонах в этой сети локальный обход нужно выключить.)*
 
 ## Файлы
 
-* [`run-smart.bat`](./run-smart.bat) / [`run-debug.bat`](./run-debug.bat) — запуск на Windows (обычный и с отладкой)
+* [`run-smart.bat`](./run-smart.bat) / [`run-debug.bat`](./run-debug.bat) — запуск на Windows (обычный и с отладкой в `logs\`)
+* [`collect-logs.bat`](./collect-logs.bat) / [`scripts/collect-logs.ps1`](./scripts/collect-logs.ps1) — сбор всех логов в `logs\latest\` и экспорт zip-архива на Рабочий стол или указанный диск
 * [`service-install.bat`](./service-install.bat) / [`service-remove.bat`](./service-remove.bat) — служба автозапуска Windows
 * [`update.bat`](./update.bat) / [`scripts/update.ps1`](./scripts/update.ps1) — обновление с GitHub (`git pull` или скачивание последнего релиза)
-* [`scripts/diagnose.ps1`](./scripts/diagnose.ps1) / [`scripts/test-strategies.ps1`](./scripts/test-strategies.ps1) — диагностика конфликтов, IPv6 и проверка скорости
-* [`keenetic/install.sh`](./keenetic/install.sh) / [`keenetic/update.sh`](./keenetic/update.sh) / [`keenetic/uninstall.sh`](./keenetic/uninstall.sh) — установка, обновление и удаление на Keenetic
+* [`scripts/diagnose.ps1`](./scripts/diagnose.ps1) / [`scripts/test-strategies.ps1`](./scripts/test-strategies.ps1) — диагностика конфликтов, IPv6 и проверка скорости (лог в `logs\diagnose.log`)
+* [`keenetic/install.sh`](./keenetic/install.sh) / [`keenetic/collect-logs.sh`](./keenetic/collect-logs.sh) / [`keenetic/update.sh`](./keenetic/update.sh) / [`keenetic/uninstall.sh`](./keenetic/uninstall.sh) — установка, сбор логов, обновление и удаление на Keenetic
 * [`lua/custom-dpi.lua`](./lua/custom-dpi.lua) — свои Lua-функции (`custom_fool_randseq`, IPv4/IPv6-условия, логгер)
 * [`lists/domains-google.txt`](./lists/domains-google.txt) / [`lists/domains-bypass.txt`](./lists/domains-bypass.txt) / [`lists/domains-exclude.txt`](./lists/domains-exclude.txt) — списки доменов и исключений (`domains-auto.txt` пополняется сам)

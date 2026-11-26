@@ -15,8 +15,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if not exist "logs" mkdir logs
 echo [INFO] Starting winws2 with universal multi-ISP Lua strategies...
 "bin\win\winws2.exe" ^
+ --hostlist-auto-debug=logs/hostlist-auto.log ^
  --wf-tcp-out=80,443,2053,2083,2087,2096,8443 ^
  --wf-tcp-in=80,443,2053,2083,2087,2096,8443 ^
  --wf-udp-out=443,19294-19344,50000-50100 ^

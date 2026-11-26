@@ -16,9 +16,10 @@ if errorlevel 1 (
 )
 
 if not exist "logs" mkdir logs
-echo [INFO] Starting winws2 with debug log -> logs\winws2.log
+echo [INFO] Starting winws2 (logs\winws2.log, logs\hostlist-auto.log)...
 "bin\win\winws2.exe" ^
  --debug=@logs\winws2.log ^
+ --hostlist-auto-debug=logs/hostlist-auto.log ^
  --wf-tcp-out=80,443,2053,2083,2087,2096,8443 ^
  --wf-tcp-in=80,443,2053,2083,2087,2096,8443 ^
  --wf-udp-out=443,19294-19344,50000-50100 ^

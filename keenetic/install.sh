@@ -34,7 +34,7 @@ else
     echo "[INFO] Detected WAN interface: $WAN_IF"
 fi
 
-mkdir -p "$INSTALL_DIR/bin" "$INSTALL_DIR/lua" "$INSTALL_DIR/files/fake" "$INSTALL_DIR/lists"
+mkdir -p "$INSTALL_DIR/bin" "$INSTALL_DIR/lua" "$INSTALL_DIR/files/fake" "$INSTALL_DIR/lists" "$INSTALL_DIR/logs"
 mkdir -p /opt/etc/init.d /opt/etc/ndm/netfilter.d
 
 cp -f "$BIN_SRC" "$INSTALL_DIR/bin/nfqws2"
@@ -42,11 +42,15 @@ chmod +x "$INSTALL_DIR/bin/nfqws2"
 cp -f "$REPO_DIR"/lua/*.lua "$INSTALL_DIR/lua/"
 cp -f "$REPO_DIR"/files/fake/* "$INSTALL_DIR/files/fake/"
 cp -f "$REPO_DIR"/lists/*.txt "$INSTALL_DIR/lists/"
+if [ -f "$SCRIPT_DIR/collect-logs.sh" ]; then
+    cp -f "$SCRIPT_DIR/collect-logs.sh" "$INSTALL_DIR/collect-logs.sh"
+    chmod +x "$INSTALL_DIR/collect-logs.sh"
+fi
 if [ -f "$REPO_DIR/VERSION" ]; then
     cp -f "$REPO_DIR/VERSION" "$INSTALL_DIR/VERSION"
 fi
-touch "$INSTALL_DIR/lists/domains-auto.txt"
-chmod 666 "$INSTALL_DIR/lists/domains-auto.txt"
+touch "$INSTALL_DIR/lists/domains-auto.txt" "$INSTALL_DIR/logs/hostlist-auto.log"
+chmod 666 "$INSTALL_DIR/lists/domains-auto.txt" "$INSTALL_DIR/logs/hostlist-auto.log"
 
 cat > "$INIT_SCRIPT" << EOF
 #!/bin/sh
@@ -94,6 +98,7 @@ start() {
     load_modules
     killall -q nfqws2 2>/dev/null || true
     \$NFQWS2 --daemon --qnum=\$QNUM --pidfile=/var/run/nfqws2.pid --user=nobody \\
+      --hostlist-auto-debug=$INSTALL_DIR/logs/hostlist-auto.log \\
       --lua-init=@\$LUA/zapret-lib.lua \\
       --lua-init=@\$LUA/zapret-antidpi.lua \\
       --lua-init=@\$LUA/zapret-auto.lua \\
