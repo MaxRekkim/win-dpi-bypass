@@ -12,14 +12,17 @@
 
 ## Как это работает
 
-Вместо одной жёстко зашитой стратегии используется оркестратор `circular` на Lua: если на конкретном домене текущая стратегия не проходит или соединение рвётся, движок сам переключает этот домен на следующий вариант по кругу без перезапуска процесса и не трогая остальные сайты:
+Вместо одной жёстко зашитой стратегии используется оркестратор `circular` на Lua: если на конкретном домене текущая стратегия не проходит или рвётся, движок сам переключает этот домен на следующий вариант по кругу (`nld=2`, быстрый сброс зависших сокетов `reset`) без перезапуска процесса и не трогая остальные сайты.
 
-1. `fake` + `multisplit` (`seqovl=652`, `tcp_ts=-600000`) — основной вариант под Cloudflare / Discord / X
-2. `fake` + `multidisorder` (`pos=1,midsld`, `tcp_seq=-10000`) — под YouTube / Google
-3. `hostfakesplit` (`www.google.com`, `tcp_ts=-600000`)
-4. `fake` (`sberbank_ru`) + `multisplit` (`pos=1,midsld`, `tcp_seq=-10000`)
+Набор стратегий рассчитан на разные типы ТСПУ у разных провайдеров:
+* Динамическое клонирование реального `ClientHello` (`tls_client_hello_clone` + `ip_autottl=-2,3-20`)
+* Перемешанные фейки и реальные сегменты (`fakeddisorder` с `badsum` + `tcp_md5`)
+* Случайный сдвиг sequence (`custom_fool_randseq`) + `multisplit` (`seqovl=652`, `tls_mod=rnd,rndsni,dupsid`)
+* `multidisorder` с `badseq` и `ip_id=zero` (YouTube / Google)
+* `hostfakesplit` с `tcp_ts=-600000` и белый SNI `sberbank_ru` + `badsum`
+* Для QUIC (`UDP 443`) и голоса Discord (`UDP 19294-19344, 50000-50100`) — `fake` с `ip_autottl` и автоматический фолбэк на IP-фрагментацию UDP (`ipfrag2` + `ipfrag_disorder`).
 
-Для QUIC (`UDP 443`) и голоса Discord (`UDP 19294-19344, 50000-50100`, `ip_ttl=7`) стоят отдельные правила.
+Новые заблокированные домены, которых ещё нет в списке, автоматически дописываются в `lists/domains-auto.txt`.
 
 > [!NOTE]
 > Решение обходит только DPI-фильтрацию. Если провайдер рубит ресурс жёстко по IP ещё на `TCP SYN`, локальный обход на уровне пакетов не поможет.
@@ -27,13 +30,14 @@
 ## Windows
 
 1. Включите Secure DNS (DoH) в браузере или в Windows 11 (например `https://dns.google/dns-query`, не «по умолчанию от провайдера»).
-2. Склонируйте или распакуйте папку в путь без кириллицы (например `C:\win-dpi-bypass`). Все бинарники уже внутри `bin\win\`.
+2. Скачайте готовый архив со страницы [**Releases**](https://github.com/MaxRekkim/win-dpi-bypass/releases/latest) или склонируйте репозиторий в путь без кириллицы (например `C:\win-dpi-bypass`).
 3. Запустите [`run-smart.bat`](./run-smart.bat) **от имени администратора** (или [`run-debug.bat`](./run-debug.bat) для лога в `logs\winws2.log`).
-4. Проверить реальную скорость и загрузку:
+4. Поставить в автозапуск службой: [`service-install.bat`](./service-install.bat) (удалить — [`service-remove.bat`](./service-remove.bat)).
+5. Диагностика и проверка реальной скорости:
    ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\test-strategies.ps1
+   powershell -ExecutionPolicy Bypass -File scripts\diagnose.ps1
    ```
-5. Поставить в автозапуск службой: [`service-install.bat`](./service-install.bat) (удалить — [`service-remove.bat`](./service-remove.bat)).
+6. Автообновление до свежего релиза с GitHub (сохраняет `lists\domains-auto.txt` и перезапускает службу, если она работала): запустите [`update.bat`](./update.bat) от имени администратора.
 
 ## Keenetic (OPKG / Entware)
 
@@ -45,16 +49,17 @@
    chmod +x /opt/tmp/win-dpi-bypass/keenetic/install.sh
    /opt/tmp/win-dpi-bypass/keenetic/install.sh
    ```
-   Скрипт сам определит архитектуру (`mipsel`/`arm64`) и WAN-интерфейс, положит файлы в `/opt/dpi-bypass`, создаст автозапуск `/opt/etc/init.d/S99zz-dpi-bypass` и хук фаервола `/opt/etc/ndm/netfilter.d/100-dpi-bypass.sh`.
-3. Удаление: `/opt/tmp/win-dpi-bypass/keenetic/uninstall.sh`.
+3. Обновление с GitHub Releases: `/opt/tmp/win-dpi-bypass/keenetic/update.sh` (или с `GITHUB_TOKEN`, если репозиторий приватный).
+4. Удаление: `/opt/tmp/win-dpi-bypass/keenetic/uninstall.sh`.
 
-*(Если обход включён на роутере — на ПК и телефонах в этой сети локальный обход нужно выключить, чтобы не было двойной нарезки пакетов.)*
+*(Если обход включён на роутере — на ПК и телефонах в этой сети локальный обход нужно выключить.)*
 
 ## Файлы
 
 * [`run-smart.bat`](./run-smart.bat) / [`run-debug.bat`](./run-debug.bat) — запуск на Windows (обычный и с отладкой)
 * [`service-install.bat`](./service-install.bat) / [`service-remove.bat`](./service-remove.bat) — служба автозапуска Windows
-* [`keenetic/install.sh`](./keenetic/install.sh) / [`keenetic/uninstall.sh`](./keenetic/uninstall.sh) — установка и удаление на Keenetic
-* [`lua/custom-dpi.lua`](./lua/custom-dpi.lua) — свои Lua-хелперы
-* [`lists/domains-google.txt`](./lists/domains-google.txt) / [`lists/domains-bypass.txt`](./lists/domains-bypass.txt) / [`lists/domains-exclude.txt`](./lists/domains-exclude.txt) — списки доменов и исключений (`domains-auto.txt` заполняется автоматически при обнаружении новых DPI-блокировок)
-* [`scripts/test-strategies.ps1`](./scripts/test-strategies.ps1) — проверка HTTP-кода, размера и скорости скачивания
+* [`update.bat`](./update.bat) / [`scripts/update.ps1`](./scripts/update.ps1) — обновление с GitHub (`git pull` или скачивание последнего релиза)
+* [`scripts/diagnose.ps1`](./scripts/diagnose.ps1) / [`scripts/test-strategies.ps1`](./scripts/test-strategies.ps1) — диагностика конфликтов, IPv6 и проверка скорости
+* [`keenetic/install.sh`](./keenetic/install.sh) / [`keenetic/update.sh`](./keenetic/update.sh) / [`keenetic/uninstall.sh`](./keenetic/uninstall.sh) — установка, обновление и удаление на Keenetic
+* [`lua/custom-dpi.lua`](./lua/custom-dpi.lua) — свои Lua-функции (`custom_fool_randseq`, IPv4/IPv6-условия, логгер)
+* [`lists/domains-google.txt`](./lists/domains-google.txt) / [`lists/domains-bypass.txt`](./lists/domains-bypass.txt) / [`lists/domains-exclude.txt`](./lists/domains-exclude.txt) — списки доменов и исключений (`domains-auto.txt` пополняется сам)
