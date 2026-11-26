@@ -114,13 +114,14 @@ start() {
         --lua-desync=send:ipfrag=ipfrag2:ipfrag_pos_udp=8:ipfrag_disorder:strategy=2 \\
         --lua-desync=drop:strategy=2 --new \\
       --filter-udp=50000-50100 --filter-l7=discord,stun \\
-        --out-range=-n8 --lua-desync=fake:blob=fake_discord_udp:ip_autottl=-2,3-20:ip_ttl=5:repeats=6 --new \\
+        --out-range=-n8 --lua-desync=fake:blob=fake_discord_udp:ip_autottl=-2,3-20:ip_ttl=6:repeats=6 --new \\
       --filter-udp=19294-19344 \\
         --out-range=-n12 --in-range=-n4 --lua-desync=circular:fails=2:udp_out=4:udp_in=1 \\
         --in-range=x \\
-        --lua-desync=fake:blob=fake_quic_google:ip_autottl=-2,3-20:ip_ttl=5:repeats=6:strategy=1 \\
-        --lua-desync=send:ipfrag=ipfrag2:ipfrag_pos_udp=8:ipfrag_disorder:strategy=2 \\
-        --lua-desync=drop:strategy=2 --new \\
+        --lua-desync=fake:blob=fake_quic_google:ip_autottl=-2,3-20:ip_ttl=6:repeats=6:strategy=1 \\
+        --lua-desync=fake:blob=fake_discord_udp:ip_autottl=-2,3-20:ip_ttl=7:repeats=6:strategy=2 \\
+        --lua-desync=send:ipfrag=ipfrag2:ipfrag_pos_udp=8:ipfrag_disorder:strategy=3 \\
+        --lua-desync=drop:strategy=3 --new \\
       --filter-tcp=443 --hostlist=\$LISTS/domains-google.txt \\
         --out-range=-s34228 --in-range=-s5556 --lua-desync=circular:fails=2:retrans=2:reset:nld=2:time=60 \\
         --in-range=x \\
