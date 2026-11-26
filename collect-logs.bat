@@ -19,12 +19,15 @@ shift
 goto parse_args
 
 :run_script
-if defined OUTDIR (
-    if "%OUTDIR:~-1%"=="\" set "OUTDIR=%OUTDIR%."
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\collect-logs.ps1" -OutputDir "%OUTDIR%" %QUICK%
-) else (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\collect-logs.ps1" %QUICK%
-)
+if not defined OUTDIR goto run_default
+if "%OUTDIR:~-1%"=="\" set "OUTDIR=%OUTDIR%."
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\collect-logs.ps1" -OutputDir "%OUTDIR%" %QUICK%
+goto done
+
+:run_default
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\collect-logs.ps1" %QUICK%
+
+:done
 set "RC=%ERRORLEVEL%"
 
 if not "%NOPAUSE%"=="1" pause

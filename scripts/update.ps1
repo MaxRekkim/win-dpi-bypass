@@ -58,6 +58,12 @@ if ($WasRunning) {
     Stop-Service -Name $ServiceName -Force
     Start-Sleep -Seconds 1
 }
+$WinDivertSvc = Get-Service -Name "WinDivert" -ErrorAction SilentlyContinue
+if ($WinDivertSvc -and $WinDivertSvc.Status -eq "Running") {
+    Write-UpdateLog "[INFO] Stopping WinDivert driver service..."
+    Stop-Service -Name "WinDivert" -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+}
 
 try {
     $GitDir = Join-Path $Root ".git"
