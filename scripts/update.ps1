@@ -58,12 +58,6 @@ if ($WasRunning) {
     Stop-Service -Name $ServiceName -Force
     Start-Sleep -Seconds 1
 }
-$WinDivertSvc = Get-Service -Name "WinDivert" -ErrorAction SilentlyContinue
-if ($WinDivertSvc -and $WinDivertSvc.Status -eq "Running") {
-    Write-UpdateLog "[INFO] Stopping WinDivert driver service..."
-    Stop-Service -Name "WinDivert" -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 1
-}
 
 try {
     $GitDir = Join-Path $Root ".git"
@@ -102,7 +96,28 @@ try {
         Invoke-WebRequest -Uri $Asset.url -Headers $DlHeaders -OutFile $ZipPath -TimeoutSec 60
 
         Expand-Archive -Path $ZipPath -DestinationPath $TmpDir -Force
-        Copy-Item -Path (Join-Path $TmpDir "*") -Destination $Root -Recurse -Force
+        Get-ChildItem -Path $TmpDir -Recurse -File | ForEach-Object {
+            $rel = $_.FullName.Substring($TmpDir.Length).TrimStart('\', '/')
+            $dst = Join-Path $Root $rel
+            $dstDir = Split-Path -Parent $dst
+            if (-not (Test-Path $dstDir)) { New-Item -ItemType Directory -Force -Path $dstDir | Out-Null }
+            if (Test-Path $dst) {
+                try {
+                    if ((Get-FileHash $_.FullName -Algorithm SHA256).Hash -eq (Get-FileHash $dst -Algorithm SHA256).Hash) {
+                        return
+                    }
+                } catch {}
+            }
+            try {
+                Copy-Item -Path $_.FullName -Destination $dst -Force -ErrorAction Stop
+            } catch {
+                if ($_.Exception.Message -match "WinDivert") {
+                    Write-UpdateLog "[WARN] $rel is locked by kernel driver; reboot to apply driver update."
+                } else {
+                    throw
+                }
+            }
+        }
         Remove-Item -Recurse -Force $TmpDir
         Write-UpdateLog "[OK] Updated to $LatestTag"
     }

@@ -144,6 +144,10 @@ if (Test-Path $DiagScript) {
 $NetReport = New-Object System.Collections.Generic.List[string]
 $NetReport.Add("=== Service & Driver Status ===")
 $NetReport.Add((& sc.exe qc win-dpi-bypass 2>&1 | Out-String).TrimEnd())
+$SvcReg = Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\win-dpi-bypass" -ErrorAction SilentlyContinue
+if ($SvcReg -and $SvcReg.ImagePath) {
+    $NetReport.Add("Registry ImagePath: $($SvcReg.ImagePath)")
+}
 $NetReport.Add("")
 $NetReport.Add((& sc.exe query win-dpi-bypass 2>&1 | Out-String).TrimEnd())
 $NetReport.Add("")
