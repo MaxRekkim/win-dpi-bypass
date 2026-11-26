@@ -38,6 +38,14 @@ kinozal.tv
 ntc.party
 soundcloud.com
 sndcdn.com
+spotify.com
+scdn.co
+spotifycdn.com
+spoti.fi
+pscdn.co
+spotify.net
+audio-ak-spotify-com.akamaized.net
+heads-ak-spotify-com.akamaized.net
 medium.com
 patreon.com
 quora.com
