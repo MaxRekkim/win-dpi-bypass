@@ -24,8 +24,28 @@
 
 Новые заблокированные домены, которых ещё нет в списке, автоматически дописываются в `lists/domains-auto.txt`.
 
+## Что поддерживается «из коробки»
+
+В базовый список (`lists/domains-bypass.txt` и `lists/domains-google.txt`) уже включены популярные заблокированные и замедляемые сервисы:
+* **YouTube & Google:** видеопотоки, превью `ytimg`, `googlevideo`, Studio, CDN.
+* **Discord:** клиент, веб, вложения `cdn.discordapp.com`, WebSockets `gateway.discord.gg` и голос RTC (UDP-профиль).
+* **Spotify:** настольный клиент, Web Player `open.spotify.com`, потоки треков `audio4-ak-spotify-com.akamaized.net`, `spclient.wg.spotify.com`, обложки `scdn.co`.
+* **Соцсети и медиа:** Twitter/X (`x.com`, `t.co`, `twimg`), Instagram (`cdninstagram`), Reddit, SoundCloud, Pinterest, Medium, Patreon.
+* **Стриминг и сообщества:** Twitch (потоки `ttvnw.net`, чат, превью), Steam Community (`steamcommunity.com`), Rutracker, NNMClub, Rutor, Kinozal.
+* **Разработка и IT:** Docker Hub (`docker.io`), загрузка драйверов вендоров (`intel.com`, `dell.com`, `amd.com`), Archive.org, Pastebin, Mega, ProtonMail.
+* **AI-сервисы (по DPI):** OpenAI / ChatGPT (`oaistatic`, `oaiusercontent`), Claude (`anthropic.com`), Perplexity.
+
 > [!NOTE]
-> Решение обходит только DPI-фильтрацию. Если провайдер рубит ресурс жёстко по IP ещё на `TCP SYN`, локальный обход на уровне пакетов не поможет.
+> ### DPI (ТСПУ) vs Гео-блокировка (Geo-IP)
+> * **DPI-фильтрация (РКН):** провайдер глушит пакеты по имени хоста в `SNI` или `Host`. `winws2` расщепляет и маскирует пакеты, поэтому эти сервисы работают на максимальной скорости домашнего интернета без сторонних серверов.
+> * **Гео-блокировка сервисом (со стороны самого сайта):** если сервис (например, регистрация аккаунта Spotify, ChatGPT или Canva) сам проверяет IP и не пускает пользователей из РФ, локальный обход доставит пакет до сервера, но сервер вернёт отказ. Для таких действий нужен разовый туннель или встроенный в приложение прокси.
+
+### Как добавить свой сайт
+Просто впишите домен в `lists/domains-bypass.txt` (или в `C:\zapret\lists\list-general-user.txt`, если используете классический flowseal zapret) — по одному на строку:
+```text
+mysite.com
+```
+Все поддомены (`*.mysite.com`) подхватываются автоматически. После добавления перезапустите службу: `Restart-Service win-dpi-bypass` (или `zapret`).
 
 ## Windows
 
@@ -74,3 +94,22 @@
 * [`keenetic/install.sh`](./keenetic/install.sh) / [`keenetic/collect-logs.sh`](./keenetic/collect-logs.sh) / [`keenetic/update.sh`](./keenetic/update.sh) / [`keenetic/uninstall.sh`](./keenetic/uninstall.sh) — установка, сбор логов, обновление и удаление на Keenetic
 * [`lua/custom-dpi.lua`](./lua/custom-dpi.lua) — свои Lua-функции (`custom_fool_randseq`, IPv4/IPv6-условия, логгер)
 * [`lists/domains-google.txt`](./lists/domains-google.txt) / [`lists/domains-bypass.txt`](./lists/domains-bypass.txt) / [`lists/domains-exclude.txt`](./lists/domains-exclude.txt) — списки доменов и исключений (`domains-auto.txt` пополняется сам)
+
+## Частые проблемы и решения
+
+### Пинг 5 000 мс или «нет интернета» в приложениях (Chromium / Spotify)
+Если сторонний VPN или прокси-клиент (например Happ, Sing-box, v2ray) аварийно закрылся или завис, в Windows может остаться включённым системный прокси на мёртвый локальный порт (например `127.0.0.1:2080`). Любой запрос через системный сетевой стек зависает ровно на 5 секунд до тайм-аута:
+1. Выключить зависший системный прокси в PowerShell:
+   ```powershell
+   Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Name ProxyEnable -Value 0
+   ```
+2. Остановить и перевести в ручной режим конфликтующую службу:
+   ```powershell
+   Stop-Service HappService -ErrorAction SilentlyContinue
+   Set-Service HappService -StartupType Manual -ErrorAction SilentlyContinue
+   ```
+
+### Ошибка `0x8032000a` (`FWP_E_IN_USE`) при запуске
+Означает, что подсистема WFP (Windows Filtering Platform) или драйвер WinDivert удерживаются другим процессом (например, античитом игры EasyAntiCheat или зависшим экземпляром `winws.exe`).
+* Завершите процессы: `Get-Process winws* -ErrorAction SilentlyContinue | Stop-Process -Force`
+* Если драйвер заблокирован античитом — сделайте быструю перезагрузку ПК.
